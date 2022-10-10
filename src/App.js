@@ -9,6 +9,7 @@ class App extends React.Component {
     this.maxFlagNbr = 10;
     this.maxOpenedCells = 62;
     this.openedCells = 0;
+    this.flaggedCells = 0;
     this.bombIsOpened = false;
     this.gameStatus = "ready";
 
@@ -36,19 +37,33 @@ class App extends React.Component {
     clearInterval(this.timerID);
   }
 
+  openAllBombs() {
+    let newGameField = [...this.state.gameField];
+    for (let row = 0; row < newGameField.length; row++) {
+      for (let col = 0; col < newGameField[row].length; col++) {
+        let cell = newGameField[row][col];
+        if (cell.isBomb) {
+          cell.isOpened = true;
+        }
+      }
+    }
+    this.setState({ gameField: newGameField });
+  }
+
   checkGameStatus() {
     if ((this.gameStatus = "started")) {
       if (this.bombIsOpened) {
         this.gameStatus = "gameover";
         // alert("You lose!!");
         this.stopTimer();
+        this.openAllBombs();
       } else {
         if (
           this.openedCells == this.maxOpenedCells &&
-          this.state.flagsNbr == this.maxFlagNbr
+          this.flaggedCells == this.maxFlagNbr
         ) {
           this.gameStatus = "gamewin";
-          alert("You win!!");
+          // alert("You win!!");
           this.stopTimer();
         }
       }
@@ -61,6 +76,7 @@ class App extends React.Component {
     this.openedCells = 0;
     this.bombIsOpened = false;
     this.gameStatus = "ready";
+    this.flaggedCells = 0;
 
     this.setState({
       gameField: this.createGameField(),
@@ -134,26 +150,24 @@ class App extends React.Component {
 
     if (this.gameStatus == "started") {
       let cell = this.state.gameField[row][col];
+      let newGameField;
 
       if (!cell.isOpened) {
         if (!cell.isFlaged) {
           //если уже установлено максимальное количество флагов, уходим
-          if (this.state.flagsNbr == this.maxFlagNbr) return;
+          if (this.flaggedCells == this.maxFlagNbr) return;
 
           // устанавливаем флаг
-          let newGameField = [...this.state.gameField];
+          newGameField = [...this.state.gameField];
           newGameField[row][col].isFlaged = true;
-          this.setState((state) => {
-            return { gameField: newGameField, flagsNbr: state.flagsNbr + 1 };
-          });
+          this.flaggedCells += 1;
         } else {
           // снимаем флаг
-          let newGameField = [...this.state.gameField];
+          newGameField = [...this.state.gameField];
           newGameField[row][col].isFlaged = false;
-          this.setState((state) => {
-            return { gameField: newGameField, flagsNbr: state.flagsNbr - 1 };
-          });
+          this.flaggedCells -= 1;
         }
+        this.setState({ gameField: newGameField, flagsNbr: this.flaggedCells });
         this.checkGameStatus();
       }
     }
@@ -213,6 +227,7 @@ class App extends React.Component {
             flagsNbr={this.maxFlagNbr - this.state.flagsNbr}
             timer={this.state.gameTimer}
             handleRestart={this.restartGame}
+            gameStatus={this.gameStatus}
           />
           <Field
             gameField={this.state.gameField}
@@ -243,7 +258,10 @@ class ControlPanel extends React.Component {
     return (
       <div className="control-panel">
         <FlagCounter flagsNbr={this.props.flagsNbr} />
-        <ButtonReset handleRestart={this.props.handleRestart} />
+        <ButtonReset
+          handleRestart={this.props.handleRestart}
+          gameStatus={this.props.gameStatus}
+        />
         <Timer timer={this.props.timer} />
       </div>
     );
@@ -258,9 +276,24 @@ class FlagCounter extends React.Component {
 
 class ButtonReset extends React.Component {
   render() {
+    let txtStatus = "";
+    switch (this.props.gameStatus) {
+      case "ready":
+        txtStatus = "Ready";
+        break;
+      case "gameover":
+        txtStatus = "You loooose!!";
+        break;
+      case "gamewin":
+        txtStatus = "You win!!!";
+        break;
+      default:
+        txtStatus = "__O_o__";
+        break;
+    }
     return (
       <a className="ButtonReset" onClick={this.props.handleRestart} href="#">
-        Reset
+        {txtStatus}
       </a>
     );
   }
